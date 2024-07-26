@@ -1,0 +1,19 @@
+.image-container {
+  position: absolute;
+}
+
+.image-container-player {
+  position: relative;
+  width: 30%;
+  height: 30%;
+  left: 30%;
+  top: -40px;
+}
+
+.input-name-from-user {
+  position: relative;
+  width: 30%;
+  height: 30%;
+  left: 65%;
+  top: -40px;
+}

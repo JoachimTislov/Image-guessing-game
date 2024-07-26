@@ -1,0 +1,165 @@
+@page "/Game/{GameId:guid}"
+@model GameModel
+@{
+    ViewData["Title"] = "Game";
+}
+<div class="text-center">
+    @if (Model.RouteData.Values["GameId"] != null)
+    {
+        @if(Model.Game != null && Model.Player != null)
+        {
+            @**************Variables used in the javaScript Code****************@
+            <input value="@Model.Game.SessionId" hidden id="sessionId"/>
+            <input value="@Model.Player.Id" hidden id="userId"/>
+
+            <input value="@Model.Guesser.Id" hidden id="guesserId"/>
+            <input value="@Model.Game.Id" hidden id="gameId"/>
+            <input value="@Model.ImageData.Identifier" hidden id="imageIdentifier"/>
+            <input value="@Model.Game.GameMode.ToString()" hidden id="gameMode"/>
+            <input value="@Model.ImageData.FolderWithImagePiecesLink" hidden id="imagePieceFolderPath"/>
+            
+            <input value="@Model.Game.OracleIsAI" hidden id="oracleIsAI"/>
+
+            //BaseOracle Id, works for both AI and User Oracle
+            <input value="@Model.Game.OracleId" hidden id="oracleId"/>
+
+            if(Model.UserOracle != null)
+            {
+                <input value="@Model.UserOracle.Oracle.Id" hidden id="userOracleId"/>
+            }
+            @*******************************************************************@
+
+            if(Model.UserOracle != null && Model.UserOracle.Oracle.Id == Model.Player.Id)
+            {
+                <h1 class="display-4">@ViewData["Title"] - Oracle - @Model.Player.UserName</h1>
+            }
+            else
+            {
+                <h1 class="display-4">@ViewData["Title"] - @Model.Player.UserName</h1>
+            }
+            <div class="container">
+            <div class="row">
+                <div class="col-md-1"></div>
+                <div class="col-md-10">
+                    <div class="row">
+                        <div class="col-md-9">
+                            <div class="card" style="height: 750px">
+                                <div class="card-header">Guess The Image, TEMP Name: @Model.ImageData.Name</div>
+                                <div class="card-body">
+                                    <div style="margin: 10px">
+                                        @if (Model.UserOracle != null && Model.UserOracle.Oracle.Id != Model.Player.Id || Model.Game.OracleIsAI || Model.Game.GameMode == "SinglePlayer")
+                                        {
+                                            <div class="image-container-player">
+                                                <div id="imageList"></div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="oracleFullImage">
+                                                <div id="oracleImageView"></div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="card-footer">
+                                    @if (Model.UserOracle != null && Model.UserOracle.Oracle.Id == Model.Player.Id || Model.Game.GameMode == "SinglePlayer"
+                                            || Model.Session.ChosenOracle == Model.Player.Id && Model.Game.OracleIsAI)
+                                    {
+                                        <input class="btn btn-danger EndGame" type="button" value="End Game"/>
+                                    }
+                                    else
+                                    {
+                                        <input class="btn btn-danger Quit" type="button" id="Quit" value="Quit Game"/>
+                                    }
+                                    @if(Model.Game.OracleIsAI && Model.Session.ChosenOracle == Model.Player.Id)
+                                    {
+                                        <input class="btn btn-success" type="button" id="RequestNewAI" value="Restart game with new AI"/>
+                                    }
+                                    @if(Model.Game.OracleIsAI && Model.Session.ChosenOracle == Model.Player.Id && Model.Game.GameMode != "FreeForAll" ||  Model.Game.GameMode == "SinglePlayer")
+                                    {
+                                        <input class="btn btn-success" type="button" id="showOneMore" value="Reveal Next Tile"/>
+                                    }
+                                    else if(Model.Game.OracleIsAI && Model.Session.ChosenOracle == Model.Player.Id && Model.Game.GameMode == "FreeForAll") 
+                                    {
+                                        <input class="btn btn-success" type="button" id="ShowNextPieceForAll" value="Reveal Next Tile For All Players"/>
+                                    }
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card" style="height: 100%;">
+                                <div class="card-header">Guesses</div>
+                                <div class="card-body overflow-y-auto">
+                                    <div id="guessingDiv"></div>
+                                </div>
+                                @if (Model.UserOracle != null && Model.UserOracle.Oracle.Id != Model.Player.Id || Model.Game.OracleIsAI)
+                                {
+                                    <div class="card-footer">
+                                        <input type="text" id="answerInput" />
+                                        <input class="btn btn-info col-md-12" type="submit" id="guessButton" value="Guess"/>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-1"></div>
+            </div>
+        </div>
+
+            <!-- Victory Modal -->
+            <div class="modal fade" id="victoryModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Game Ended</h5>
+                        </div>
+                        <div class="modal-body">
+                            <h6 id="winningPlayer"></h6>
+                            <img src="~/@Model.ImageData.Link" style="width: 200px; height: 200px;" />
+                            <h5 id="modalAnswer"></h5>
+                        </div>
+                        <div class="modal-footer">
+                            @if (Model.UserOracle != null && Model.UserOracle.Oracle.Id == Model.Player.Id || Model.Game.GameMode.ToString() == "SinglePlayer" || Model.Session.ChosenOracle == Model.Player.Id && Model.OracleAI != null)
+                            {
+                                @if (Model.Game.NumberOfGames <= 0)
+                                {
+                                    <button type="button" class="btn btn-danger EndGame">End Game</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-success" id="NextRound">Next Round</button>
+                                }  
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else 
+        {
+            <h1 class="display-4">Game Not Found</h1>
+        }
+    }
+</div>
+
+@section Scripts {
+    <script>
+        
+        var oracleAI_Array_NumbersForImagePieces = @Html.Raw(ViewData["oracleAI_Array_NumbersForImagePieces"]) 
+        oracleAI_Array_NumbersForImagePieces = oracleAI_Array_NumbersForImagePieces || "Oracle AI Array not found"; 
+        console.log(oracleAI_Array_NumbersForImagePieces, "From server");
+
+        var availablePiecesOfImagePreLoad = @Html.Raw(ViewData["ImagePieceList"] ) 
+        availablePiecesOfImagePreLoad = availablePiecesOfImagePreLoad || "ImagePiecesPreLoad not found";
+        console.log(availablePiecesOfImagePreLoad, "From server");
+
+        var imagePiecesData = @Html.Raw(ViewData["ImagePiecesData"]) 
+        imagePiecesData = imagePiecesData || "ImagePiecesData not found";
+        console.log(imagePiecesData, "From server");  
+    </script>
+    
+    <script type="module" src="~/js/gamePage.js"></script>
+}

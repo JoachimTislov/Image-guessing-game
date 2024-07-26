@@ -1,0 +1,215 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+@if (User.Identity != null && User.Identity.IsAuthenticated && Model.GameUser != null)
+{
+    <div class="text-center">
+        <h1 class="display-4">Image Guesser</h1>
+        <h3 class="display-6">@Model.GameUser.UserName</h3>
+        <div class="row">
+            <div class="col-md-4">
+                <h2 class="display-8">Recent Games</h2>
+                <div class="card-body">
+                    <div class="row mt-1">
+                        <div class="col overflow-y-auto" style="min-height: 360px; max-height: 360px;">
+                            <table class="table tablestriped table-hover leaderBoard" id="recentGames">
+                                <thead>
+                                    <tr>
+                                        <th class="col-md-3">Gamemode</th>
+                                        <th class="col-md-3">Score</th>
+                                        <th class="col-md-3">Guesser</th>
+                                        <th class="col-md-3">Oracle</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var entry in Model.RecentGames)
+                                    {
+                                        <tr>
+                                            <th class="col-md-3">@entry.GameMode</th>
+                                            <td class="col-md-3">@entry.Score</td>
+                                            <td class="col-md-3">@entry.Guesser</td>
+                                            <td class="col-md-3">@(entry.GameMode == "Duo" || entry.GameMode == "DuoRandom" ? entry.Oracle : "AI")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mt-5">
+                <div class="row">
+                    <form method="post" asp-page-handler="Creategame" class="col-md-12 mt-5">
+                        <button type="submit" class="btn btn-success col-md-12 mt-5" Id="CreateGameButton">Create Game</button>
+                    </form>
+                </div>
+                <div class="row">
+                    <form method="post" asp-page-handler="Joingame" class="mt-5">
+                        <button type="submit" class="btn btn-info col-md-12">Join Game</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <h2 class="display-8">Leaderboards</h2>
+                <div class="card-body">
+                    <div class="row">
+                        <div>
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check leaderBoardButton" name="btnradio" id="SinglePlayer" autocomplete="off" checked />
+                                <label class="btn btn-outline-secondary" for="SinglePlayer">Singles</label>
+                                
+                                <input type="radio" class="btn-check leaderBoardButton" name="btnradio" id="SinglePlayerRandom" autocomplete="off" />
+                                <label class="btn btn-outline-secondary" for="SinglePlayerRandom">Single Randoms</label>
+
+                                <input type="radio" class="btn-check leaderBoardButton" name="btnradio" id="Duo" autocomplete="off" />
+                                <label class="btn btn-outline-secondary" for="Duo">Duo</label>
+
+                                <input type="radio" class="btn-check leaderBoardButton" name="btnradio" id="DuoRandom" autocomplete="off" />
+                                <label class="btn btn-outline-secondary" for="DuoRandom">Duo Randoms</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-1">
+                        <div class="col overflow-y-auto" style="min-height: 360px; max-height: 360px;">
+                            @foreach (var leaderBoard in Model.Leaderboards)
+                            {
+                                <table class="table tablestriped table-hover leaderBoard" id="@leaderBoard.GameMode" @(leaderBoard.GameMode != "SinglePlayer" ? "hidden" : "") >
+                                    <thead>
+                                        <tr>
+                                            <th class="col-md-3">Ranking</th>
+                                            <th class="col-md-3">Score</th>
+                                            <th class="col-md-3">Guesser</th>
+                                            <th class="col-md-3">@(leaderBoard.GameMode == "Duo" || leaderBoard.GameMode == "DuoRandom" ? "Oracle" : "")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var entry in leaderBoard.Entries)
+                                        {
+                                            <tr>
+                                                <th class="col-md-3">@(leaderBoard.Entries.IndexOf(entry) + 1)</th>
+                                                <td class="col-md-3">@entry.Score</td>
+                                                <td class="col-md-3">@entry.Guesser</td>
+                                                <td class="col-md-3">@(leaderBoard.GameMode == "Duo" || leaderBoard.GameMode == "DuoRandom" ? entry.Oracle : "")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+else 
+{
+    <div class="text-center">
+        <h1 class="display-4">Image Guesser</h1>
+        <div class="row">
+            <div class="col-md-3"></div>
+            <div class="col-md-8">
+                <form method="post" class="row row-cols-md-auto g-3 align-items-center">
+                        <div class="col-12">
+                            <label class="visually-hidden" for="username">Username</label>
+                            <div class="input-group">
+                                <div class="input-group-text">@@</div>
+                                <input asp-for="Username" class="form-control" id="username" type="username" placeholder="Username"/>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="visually-hidden" for="password">Password</label>
+                            <input asp-for="Password" type="password" class="form-control" id="password" placeholder="Password"/>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="rememberMe" />
+                                <label class="form-check-label" for="rememberMe">
+                                    Remember me
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <input type="submit" class="btn btn-primary" value="Login" />
+                        </div>
+                </form>
+            </div>
+            <div class="col-md-1"></div>
+        </div>
+        @foreach (var error in Model.Errors)
+        {
+            <div class="row">
+                <div class="col-md-4"></div>
+                <div class="alert alert-danger col-md-4 mt-2">@error</div>
+                <div class="col-md-4"></div>
+            </div>
+        }
+        <p>If you dont have an account you can <a href="Register">register here</a></p>
+
+        <br/>
+        <div class="row">
+            <div class="col-md-3"></div>
+            <div class="card col-md-6">
+                <div class="card-body">
+                    <div class="row">
+                        <div>
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check leaderBoardButton" name="btnradio" id="SinglePlayer" autocomplete="off" checked />
+                                <label class="btn btn-outline-secondary" for="SinglePlayer">Singles</label>
+                                
+                                <input type="radio" class="btn-check leaderBoardButton" name="btnradio" id="SinglePlayerRandom" autocomplete="off" />
+                                <label class="btn btn-outline-secondary" for="SinglePlayerRandom">Single Randoms</label>
+
+                                <input type="radio" class="btn-check leaderBoardButton" name="btnradio" id="Duo" autocomplete="off" />
+                                <label class="btn btn-outline-secondary" for="Duo">Duo</label>
+
+                                <input type="radio" class="btn-check leaderBoardButton" name="btnradio" id="DuoRandom" autocomplete="off" />
+                                <label class="btn btn-outline-secondary" for="DuoRandom">Duo Randoms</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-1">
+                        <div class="col overflow-y-auto" style="min-height: 360px; max-height: 360px;">
+                            @foreach (var leaderBoard in Model.Leaderboards)
+                            {
+                                <table class="table tablestriped table-hover leaderBoard" id="@leaderBoard.GameMode" @(leaderBoard.GameMode != "SinglePlayer" ? "hidden" : "") >
+                                    <thead>
+                                        <tr>
+                                            <th class="col-md-3">Ranking</th>
+                                            <th class="col-md-3">Score</th>
+                                            <th class="col-md-3">Guesser</th>
+                                            <th class="col-md-3">@(leaderBoard.GameMode == "Duo" || leaderBoard.GameMode == "DuoRandom" ? "Oracle" : "")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var entry in leaderBoard.Entries)
+                                        {
+                                            <tr>
+                                                <th class="col-md-3">@(leaderBoard.Entries.IndexOf(entry) + 1)</th>
+                                                <td class="col-md-3">@entry.Score</td>
+                                                <td class="col-md-3">@entry.Guesser</td>
+                                                <td class="col-md-3">@(leaderBoard.GameMode == "Duo" || leaderBoard.GameMode == "DuoRandom" ? entry.Oracle : "")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3"></div>
+        </div>
+    </div>
+}
+
+
+@section Scripts {
+    <script type="module" src="~/js/index.js"></script>
+}

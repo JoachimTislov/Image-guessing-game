@@ -1,0 +1,41 @@
+.polygon-overlay {
+  position: relative;
+}
+
+.polygon-container {
+  position: absolute;
+  background-color: transparent; /* Default transparent background */
+}
+
+.polygon-container.active {
+  background-color: black;
+}
+#image {
+  position: absolute;
+}
+#image2 {
+  position: absolute;
+}
+.polygon {
+  position: absolute;
+  z-index: 2;
+  border-style: solid;
+  border-color: red; /* Add white border to the polygons */
+  cursor: pointer; /* Set cursor to indicate clickable area */
+}
+.polygon2 {
+  position: absolute;
+}
+.TheImage {
+  position: absolute;
+  z-index: 1;
+}
+.parner-view {
+  position: absolute;
+  left: 100px;
+  top: -40px;
+}
+.chosen-pieces {
+  position: absolute;
+  left: 200px;
+}

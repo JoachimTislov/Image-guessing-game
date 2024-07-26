@@ -1,0 +1,285 @@
+@page "/Lobby/{id:guid}"
+@model LobbyModel
+@{
+    ViewData["Title"] = "Lobby";
+}
+<div class="text-center">
+    @if (Model.RouteData.Values["id"] != null && Model.Session != null && Model.Player != null)
+    {
+        <h1 class="display-4">@ViewData["Title"]</h1>
+        <div class="row mt-5">
+            <div class="col-md-4">
+                @if (Model.Player.Id == Model.Session.SessionHostId)
+                {
+                    <div class="card" id="pictureSelector" style="@((Model.Session.Options.GameMode == Core.Domain.SessionContext.GameMode.SinglePlayer || Model.Session.Options.RandomPictureMode) ? "display: none;" : "")">
+                        <h5 class="card-header">Images</h5>
+                        <div class="card-body overflow-y-auto" style="min-height: 400px; max-height: 400px; ">
+                            <div class="container">
+                                <div class="row g-3">
+                                    @if (Model.RandomImages != null)
+                                    {
+                                        @foreach (var image in Model.RandomImages)
+                                        {
+                                            <div class="col-md-4">
+                                                <div class="">
+                                                    <button class="btn position-relative image-selector-button" style="padding: 0; margin: 0;" id="@image.Identifier">
+                                                        <img src="~/@image.Link" class="rounded" width="95px" height="95px"/>
+                                                        @if (Model.Session.ImageIdentifier == image.Identifier)
+                                                        {
+                                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" id="selectedPicture">
+                                                                <i class="bi bi-check-lg"></i>
+                                                            </span>
+                                                        }
+                                                    </button>
+                                                </div>
+                                            </div>   
+                                        }
+                                        if(Model.Session.ChosenImageName != null)
+                                        {
+                                            <h5 class="col"> Current Image: @Model.Session.ChosenImageName </h5>
+                                        }
+                                        else
+                                        {
+                                            <h5 class="col"> Choose a Image </h5>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="col-md-4">
+                <!-- Normally the input would be placed on the Options card, however to keep the Session Id accessable to all the players it is kept here -->
+                <!-- as the Options card is not rendered for players other then the host -->
+                <input type="string" class="form-control" id="sessionId" value="@Model.Session.Id" hidden/>
+                <div class="card">
+                    <h5 class="card-header">Lobby - @Model.Session.Options.GameMode - <span id="userCount">@Model.Session.SessionUsers.Count</span> / @Model.Session.Options.LobbySize</h5>
+                    <div class="card-body">
+                        <div class="container">
+                            <div class="row mt-1">
+                                <div class="col"><h6>Player</h6></div>
+                                <div class="col"><h6>Oracle</h6></div>
+                                <div class="col"><h6>Kick</h6></div>
+                            </div>
+                        </div>
+                        <!-- Handles alot of the rendering functionality so this is not needed to be done in the front-end -->
+                        <ul class="list-group list-group-flush" id="playerList">
+                            @foreach (var player in Model.Session.SessionUsers)
+                            {
+                                <li class="list-group-item">
+                                    <div class="container g-0">
+                                        <div class="row mt-1">
+                                            <div class="col">@player.UserName</div>
+                                            <div class="col">
+                                                @if (Model.Player.Id == Model.Session.SessionHostId) 
+                                                {
+                                                    if (Model.Session.Options.GameMode != Core.Domain.SessionContext.GameMode.FreeForAll || (Model.Session.Options.GameMode == Core.Domain.SessionContext.GameMode.FreeForAll && Model.Session.Options.RandomOracle))
+                                                    {
+                                                        if (Model.Session.Options.GameMode == Core.Domain.SessionContext.GameMode.Duo)
+                                                        {
+                                                            if (player.Id == Model.Session.ChosenOracle)
+                                                            {
+                                                                <input class="form-check-input oracleCheckBox" type="checkbox" disabled checked /> 
+                                                            }
+                                                            else
+                                                            {
+                                                                <input class="form-check-input oracleCheckBox" type="checkbox" disabled /> 
+                                                            }
+                                                        }
+                                                        else 
+                                                        {
+                                                            <input class="form-check-input oracleCheckBox" type="checkbox" disabled/> 
+                                                        }
+                                                    }
+                                                    else if (player.Id == Model.Session.ChosenOracle)
+                                                    {
+                                                        <input class="form-check-input oracleCheckBox" type="checkbox" id="@player.Id" checked/> 
+                                                    }
+                                                    else
+                                                    {
+                                                        <input class="form-check-input oracleCheckBox" type="checkbox" id="@player.Id" /> 
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <input class="form-check-input oracleCheckBox" type="checkbox" disabled /> 
+                                                }
+                                            </div>
+                                            <div class="col">
+                                                @if (Model.Player.Id == Model.Session.SessionHostId && player.Id != Model.Session.SessionHostId)
+                                                {
+                                                    <button class="btn btn-danger kickButton" player-Id="@player.Id">Kick</button>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                    <div class="card-footer">
+                        <div class="row">
+                            <div class="col">
+                                @if (Model.Player.Id == Model.Session.SessionHostId)
+                                {
+                                    <button class="btn btn-danger" id="closeLobbyButton">Close Lobby</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-danger" id="leaveButton" player-Id="@Model.Player.Id">Leave Lobby</button>
+                                }
+                            </div>
+                            <div class="col">
+                                @if (Model.Player.Id == Model.Session.SessionHostId)
+                                {
+                                    <form method="post" asp-page-handler="Startgame">
+                                        <button type="submit" class="btn btn-success" id="startGameButton" 
+                                            @(Model.Session.ImageIdentifier == null && !Model.Session.Options.RandomPictureMode || Model.Session.SessionUsers.Count < 2 && Model.Session.Options.GameMode.ToString() != "SinglePlayer" ? "disabled" : "") )>
+                                            Start Game
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="col-md-4">
+                @if (Model.Player.Id == Model.Session.SessionHostId)
+                {
+                    <div class="card">
+                        <h5 class="card-header">Game Options</h5>
+                        <div class="card-body">
+                            <form method="post" asp-page-handler="Updatesettings">
+                                <div class="mb-3">
+                                    @if (!Model.Session.Options.RandomPictureMode && Model.Session.Options.GameMode.ToString() != "Singleplayer")
+                                    {
+                                        <label for="numRounds" class="form-label">Number of Rounds (<span id="numRoundsValue">1</span>)</label>
+                                        <input asp-for="NumberOfRounds" type="range" class="form-range" min="1" max="5" id="numRounds" value="@Model.Session.Options.NumberOfRounds" disabled>
+                                    }
+                                    else
+                                    {
+                                        <label for="numRounds" class="form-label">Number of Rounds (<span id="numRoundsValue">@Model.Session.Options.NumberOfRounds</span>)</label>
+                                        <input asp-for="NumberOfRounds" type="range" class="form-range" min="1" max="5" id="numRounds" value="@Model.Session.Options.NumberOfRounds">
+                                    }
+                                </div>
+                                <div class="mb-3">
+                                    @{
+                                        var gameModes = Enum.GetNames(typeof(Core.Domain.SessionContext.GameMode));
+                                    }
+                                    <select asp-for="GameMode" class="form-select" aria-label="GameMode Select" id="gameModeSelect">
+                                        @foreach (var mode in gameModes) {
+                                            if (mode == Model.Session.Options.GameMode.ToString()) {
+                                                <option value="@mode" selected>@mode</option>
+                                            }
+                                            else 
+                                            {
+                                                <option value="@mode">@mode</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                                    <div class="mb-3">
+                                        <label for="lobbySize" class="form-label">Lobby Size (<span id="numLobbySizeValue">@Model.Session.Options.LobbySize</span>)</label>
+                                        @if (Model.Session.Options.GameMode != Core.Domain.SessionContext.GameMode.FreeForAll)
+                                        {
+                                            <input asp-for="LobbySize" type="range" class="form-range" min="@(Model.Session.SessionUsers.Count > 2 ? Model.Session.SessionUsers.Count : 2)" max="6" id="lobbySize" disabled>
+                                        }
+                                        else
+                                        {
+                                            <input asp-for="LobbySize" type="range" class="form-range"
+                                                min="@(Model.Session.SessionUsers.Count > 2 ? Model.Session.SessionUsers.Count : 2)" max="6" 
+                                                value="@Model.Session.Options.LobbySize" id="lobbySize">
+                                        }
+                                </div>
+                                <div class="mb-3">
+                                    @if (Model.Session.Options.RandomPictureMode)
+                                    {
+                                        <input asp-for="RandomPictureMode" type="checkbox" class="form-check-input" role="switch" id="randomPictureMode" checked>
+                                    }
+                                    else if (Model.Session.Options.GameMode.ToString() == "SinglePlayer")
+                                    {
+                                        <input asp-for="RandomPictureMode" type="checkbox" class="form-check-input" role="switch" id="randomPictureMode" checked disabled>
+                                    }
+                                    else
+                                    {
+                                        <input asp-for="RandomPictureMode" type="checkbox" class="form-check-input" role="switch" id="randomPictureMode">
+                                    }
+                                    <label for="randomPictureMode" class="form-check-label">Random Picture Mode</label>
+                                </div>
+                                <div class="mb-3">
+                                    @if (Model.Session.Options.GameMode != Core.Domain.SessionContext.GameMode.FreeForAll)
+                                    {
+                                        <input asp-for="RandomOracle" type="checkbox" class="form-check-input" role="switch" id="randomOracle" disabled>
+                                    }
+                                    else
+                                    {
+                                        @if (!Model.Session.Options.UseAI)
+                                        {
+                                            @if (Model.Session.Options.RandomOracle)
+                                            {
+                                                <input asp-for="RandomOracle" type="checkbox" class="form-check-input" role="switch" id="randomOracle" checked>
+                                            }
+                                            else
+                                            {
+                                                <input asp-for="RandomOracle" type="checkbox" class="form-check-input" role="switch" id="randomOracle">
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <input asp-for="RandomOracle" type="checkbox" class="form-check-input" role="switch" id="randomOracle" disabled>
+                                        }
+                                    }
+                                    <label for="randomOracle" class="form-check-label">Random Oracle</label>
+                                </div>
+                                <div class="mb-3">
+                                        @if (Model.Session.Options.UseAI)
+                                        {
+                                            @if(Model.GameMode == Core.Domain.SessionContext.GameMode.FreeForAll)
+                                            {
+                                                <input asp-for="UseAI" type="checkbox" class="form-check-input" role="switch" id="useAi" ></input>
+                                            }
+                                            else if(Model.GameMode == Core.Domain.SessionContext.GameMode.Duo)
+                                            {
+                                                <input asp-for="UseAI" type="checkbox" class="form-check-input" role="switch" id="useAi" disabled></input>
+                                            }
+                                            else
+                                            {
+                                                <input asp-for="UseAI" type="checkbox" class="form-check-input" role="switch" id="useAi" checked disabled></input>
+                                            }
+                                        }
+                                        else if(Model.GameMode == Core.Domain.SessionContext.GameMode.Duo)
+                                        {
+                                            <input asp-for="UseAI" type="checkbox" class="form-check-input" role="switch" id="useAi" disabled></input>
+                                        }
+                                        else
+                                        {
+                                            <input asp-for="UseAI" type="checkbox" class="form-check-input" role="switch" id="useAi" ></input>
+                                        }
+                                    <label for="randomOracle" class="form-check-label">Use AI</label>
+                                </div>
+                                <!-- Two input fields to store values not directly present in the form, handled by the javascript -->
+                                <input asp-for="ImageIdentifier" type="string" class="form-control" id="imageInput" value="@Model.Session.ImageIdentifier" hidden/>
+                                <input asp-for="NewOracle" type="string" class="form-control" id="newOracleInput" hidden/>
+                                <button type="submit" class="btn btn-success" id="updateButton" disabled>Update</button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <h1 class="display-4">
+            Apologies, but the session you attempted to join is no longer available. 
+        <br>Please return to the LobbyList and try again
+        </h1>
+    }
+</div>
+
+@section Scripts {
+    <script type="module" src="~/js/lobby.js"></script>
+}
